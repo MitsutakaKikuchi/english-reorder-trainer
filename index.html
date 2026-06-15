@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="description" content="Real Grammar for Creative Communication（Unit 1〜15）の英文を、語句を並べ替えて完成させる並び替え学習アプリ。解説・ヒント付き。">
+  <title>英語 並び替えトレーナー｜Real Grammar Unit 1-15</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <button class="home-link" id="homeBtn" aria-label="ホームに戻る">
+      <span class="home-icon">‹</span> ホーム
+    </button>
+    <span class="app-logo">🔤 Real Grammar</span>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <!-- データ → ロジック → アプリ本体 の順に読み込む（ES Modules不使用でfile://でも動作） -->
+  <script src="js/data/units.js"></script>
+  <script src="js/data/questions.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
