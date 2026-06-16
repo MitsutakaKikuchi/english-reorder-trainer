@@ -232,8 +232,11 @@
     const pct = Math.round(((p.current - 1) / p.total) * 100);
     const roundLabel = r.totalRounds > 1 ? `ラウンド ${r.round} / ${r.totalRounds}` : '';
 
-    let placed = [];     // q.bank のindex を並べた順
+    let placed = [];          // q.bank のindex を並べた順
     let answered = false;
+    let selectedBank = null;  // 選択中の bank index（null = 未選択）
+    let resetPending = false;
+    let resetTimer = null;
 
     mountView(`
       <section class="quiz" style="--accent:${unit.accent}">
@@ -279,7 +282,7 @@
     function renderTiles() {
       // 解答エリア
       if (placed.length === 0) {
-        answerArea.innerHTML = '<span class="answer-placeholder">下の語句をタップして英文を作ろう</span>';
+        answerArea.innerHTML = '<span class="answer-placeholder">語句を選んで、もう一度タップすると追加されます</span>';
       } else {
         answerArea.innerHTML = placed.map((bi, pos) => {
           let extra = '';
@@ -295,35 +298,69 @@
         .map((item, bi) => ({ item, bi }))
         .filter(({ bi }) => !placed.includes(bi));
       bankEl.innerHTML = remaining.length
-        ? remaining.map(({ item, bi }) => tileHtml(item.text, 'bank', bi)).join('')
+        ? remaining.map(({ item, bi }) => {
+            const sel = bi === selectedBank ? 'tile--selected' : '';
+            return tileHtml(item.text, 'bank', bi, sel);
+          }).join('')
         : '<span class="bank-empty">すべて使いました</span>';
 
       checkBtn.disabled = answered || placed.length === 0;
     }
 
+    // 解答エリア：配置済みチップを取り除く
     answerArea.addEventListener('click', (e) => {
       const t = e.target.closest('.tile');
-      if (!t || answered) return;
-      const pos = Number(t.dataset.i);
-      placed.splice(pos, 1);
-      vibrate(6);
-      renderTiles();
+      if (answered) return;
+      if (t) {
+        const pos = Number(t.dataset.i);
+        placed.splice(pos, 1);
+        selectedBank = null;
+        vibrate(6);
+        renderTiles();
+      }
     });
 
+    // 語句バンク：1回目タップで選択（ハイライト）、2回目タップで解答エリアに追加
     bankEl.addEventListener('click', (e) => {
       const t = e.target.closest('.tile');
       if (!t || answered) return;
       const bi = Number(t.dataset.i);
-      if (!placed.includes(bi)) placed.push(bi);
+      if (placed.includes(bi)) return;
+      if (selectedBank === bi) {
+        // 同じチップを再タップ → 解答エリアへ追加
+        placed.push(bi);
+        selectedBank = null;
+      } else {
+        // 別のチップをタップ → 選択状態に切り替え
+        selectedBank = bi;
+      }
       vibrate(6);
       renderTiles();
     });
 
+    // リセット：1回目押下でボタン変色＋確認表示、2秒以内の2回目押下で実行
     resetBtn.addEventListener('click', () => {
       if (answered) return;
-      placed = [];
-      vibrate(8);
-      renderTiles();
+      if (resetPending) {
+        placed = [];
+        selectedBank = null;
+        resetPending = false;
+        clearTimeout(resetTimer);
+        resetBtn.textContent = '↺ リセット';
+        resetBtn.classList.remove('btn-reset--confirm');
+        vibrate(8);
+        renderTiles();
+      } else {
+        resetPending = true;
+        resetBtn.textContent = 'もう一度押すと消去';
+        resetBtn.classList.add('btn-reset--confirm');
+        vibrate([10, 30, 10]);
+        resetTimer = setTimeout(() => {
+          resetPending = false;
+          resetBtn.textContent = '↺ リセット';
+          resetBtn.classList.remove('btn-reset--confirm');
+        }, 2000);
+      }
     });
 
     document.getElementById('grammarBtn').addEventListener('click', () => {
@@ -356,21 +393,22 @@
       hintBtn.hidden = true;
 
       const tipHtml = q.tip
-        ? `<div class="tip-box"><span class="tip-label">💡 覚え方のコツ</span>${esc(q.tip)}</div>`
+        ? `<div class="fb-section fb-tip"><span class="fb-label">💡 ポイント</span><p class="fb-body">${esc(q.tip)}</p></div>`
         : '';
-      const sentenceHtml = `<div class="answer-sentence">${esc(q.sentence)}</div>`;
+      const sentenceHtml = `<div class="fb-sentence">${esc(q.sentence)}</div>`;
+      const expHtml = `<div class="fb-section"><span class="fb-label">📝 解説</span><p class="fb-body">${esc(q.exp)}</p></div>`;
 
       if (result.correct) {
         vibrate(12);
         if (!reduceMotion) burstConfetti();
         feedbackEl.className = 'feedback feedback--ok';
-        feedbackEl.innerHTML = `<strong>正解！</strong>${sentenceHtml}<div class="answer-exp">${esc(q.exp)}</div>${tipHtml}`;
+        feedbackEl.innerHTML = `<div class="fb-result fb-result--ok">✅ 正解！</div>${sentenceHtml}${expHtml}${tipHtml}`;
       } else {
         vibrate([20, 40, 20]);
         answerArea.classList.add('shake');
         setTimeout(() => answerArea.classList.remove('shake'), 420);
         feedbackEl.className = 'feedback feedback--ng';
-        feedbackEl.innerHTML = `<strong>おしい！</strong> 正しい語順はこちら：${sentenceHtml}<div class="answer-exp">${esc(q.exp)}</div>${tipHtml}`;
+        feedbackEl.innerHTML = `<div class="fb-result fb-result--ng">✗ おしい！</div><p class="fb-correct-label">正しい語順はこちら：</p>${sentenceHtml}${expHtml}${tipHtml}`;
       }
       feedbackEl.hidden = false;
 
