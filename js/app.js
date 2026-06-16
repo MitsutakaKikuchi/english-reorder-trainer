@@ -326,7 +326,6 @@
       if (answered) return;
       if (resetPending) {
         placed = [];
-        selectedBank = null;
         resetPending = false;
         clearTimeout(resetTimer);
         resetBtn.textContent = '↺ リセット';
