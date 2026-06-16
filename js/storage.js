@@ -4,6 +4,7 @@
  */
 const Storage = (() => {
   const STORAGE_KEY = 'real-grammar-reorder-progress-v1';
+  const WRONG_KEY = 'real-grammar-reorder-wrong-v1';
 
   /** 全進捗を読み込む。 */
   function loadAll() {
@@ -52,5 +53,56 @@ const Storage = (() => {
     }
   }
 
-  return { loadAll, getProgress, saveResult, clearAll };
+  /* ---------- 間違えた問題（復習用）の管理 ---------- */
+
+  /** 間違えた問題IDの一覧を読み込む。 */
+  function getWrongIds() {
+    try {
+      const raw = localStorage.getItem(WRONG_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (err) {
+      console.warn('復習リストの読み込みに失敗しました:', err);
+      return [];
+    }
+  }
+
+  /** 間違えた問題IDを復習リストに追加する（重複は無視）。 */
+  function addWrong(questionId) {
+    if (!questionId) return;
+    try {
+      const ids = getWrongIds();
+      if (!ids.includes(questionId)) {
+        ids.push(questionId);
+        localStorage.setItem(WRONG_KEY, JSON.stringify(ids));
+      }
+    } catch (err) {
+      console.warn('復習リストへの追加に失敗しました:', err);
+    }
+  }
+
+  /** 正解した問題IDを復習リストから取り除く。 */
+  function removeWrong(questionId) {
+    if (!questionId) return;
+    try {
+      const ids = getWrongIds().filter((id) => id !== questionId);
+      localStorage.setItem(WRONG_KEY, JSON.stringify(ids));
+    } catch (err) {
+      console.warn('復習リストの更新に失敗しました:', err);
+    }
+  }
+
+  /** 復習リストを空にする。 */
+  function clearWrong() {
+    try {
+      localStorage.removeItem(WRONG_KEY);
+    } catch (err) {
+      console.warn('復習リストの消去に失敗しました:', err);
+    }
+  }
+
+  return {
+    loadAll, getProgress, saveResult, clearAll,
+    getWrongIds, addWrong, removeWrong, clearWrong,
+  };
 })();

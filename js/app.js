@@ -76,12 +76,31 @@
         </button>`;
     }).join('');
 
+    const wrongCount = Storage.getWrongIds().length;
+    const reviewDisabled = wrongCount === 0;
+
     mountView(`
       <section class="home">
         <div class="hero">
           <h1 class="hero-title">英語 並び替えトレーナー</h1>
           <p class="hero-sub">Real Grammar for Creative Communication ｜ Unit 1〜15</p>
           <p class="hero-note">語句をタップして英文を組み立てよう。解説・ヒント付き。</p>
+        </div>
+        <div class="special-grid">
+          <button class="special-card special-card--random" id="randomBtn">
+            <span class="special-icon">🎲</span>
+            <span class="special-body">
+              <span class="special-title">全範囲からランダム</span>
+              <span class="special-sub">全 Unit を混ぜて10問ずつ出題</span>
+            </span>
+          </button>
+          <button class="special-card special-card--review" id="reviewBtn" ${reviewDisabled ? 'disabled' : ''}>
+            <span class="special-icon">📌</span>
+            <span class="special-body">
+              <span class="special-title">間違えた問題に再挑戦</span>
+              <span class="special-sub">${reviewDisabled ? 'まだ間違えた問題はありません' : `復習リスト ${wrongCount} 問`}</span>
+            </span>
+          </button>
         </div>
         <div class="card-grid">${cards}</div>
         <p class="home-foot">学習したい Unit を選んでください</p>
@@ -94,6 +113,18 @@
         renderUnit(Number(btn.dataset.unit));
       });
     });
+
+    document.getElementById('randomBtn').addEventListener('click', () => {
+      vibrate(8);
+      startRandomQuiz();
+    });
+    const reviewBtn = document.getElementById('reviewBtn');
+    if (!reviewDisabled) {
+      reviewBtn.addEventListener('click', () => {
+        vibrate(8);
+        startReviewQuiz();
+      });
+    }
   }
 
   /* ---------- 文法解説 ---------- */
@@ -171,9 +202,31 @@
     renderQuestion();
   }
 
+  /** 全 Unit の問題を混ぜてランダム出題する。 */
+  function startRandomQuiz() {
+    session = Quiz.createCustomSession(QUESTIONS, { mode: 'random', label: '全範囲ランダム' });
+    renderQuestion();
+  }
+
+  /** 復習リスト（間違えた問題）だけを出題する。 */
+  function startReviewQuiz() {
+    const ids = Storage.getWrongIds();
+    const pool = QUESTIONS.filter((q) => ids.includes(q.id));
+    if (pool.length === 0) return renderHome();
+    session = Quiz.createCustomSession(pool, { mode: 'review', label: '間違えた問題の復習' });
+    renderQuestion();
+  }
+
+  /** 問題が属するUnit（解説オーバーレイ・アクセント色に使用）を返す。 */
+  function unitOf(q) {
+    return UNITS.find((u) => u.id === q.unit) || UNITS[0];
+  }
+
   function renderQuestion() {
-    const unit = UNITS.find((u) => u.id === session.unitId);
     const q = Quiz.current(session);
+    const unit = session.mode === 'unit'
+      ? UNITS.find((u) => u.id === session.unitId)
+      : unitOf(q);
     const p = Quiz.progress(session);
     const r = Quiz.roundInfo(session);
     const pct = Math.round(((p.current - 1) / p.total) * 100);
@@ -192,7 +245,7 @@
           <div class="quiz-progress"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
           <span class="quiz-count">${p.current} / ${p.total}</span>
         </div>
-        <span class="quiz-cat">${esc(q.cat)}</span>
+        <span class="quiz-cat">${session.mode !== 'unit' ? `Unit ${unit.id}・` : ''}${esc(q.cat)}</span>
         <h2 class="quiz-prompt">${esc(q.ja)}</h2>
 
         <div class="answer-area" id="answerArea" aria-label="組み立てた英文"></div>
@@ -290,6 +343,13 @@
       const built = placed.map((bi) => q.bank[bi].text);
       const result = Quiz.check(session, built);
 
+      // 復習リストを更新（不正解→追加、正解→除外）
+      if (result.correct) {
+        Storage.removeWrong(q.id);
+      } else {
+        Storage.addWrong(q.id);
+      }
+
       renderTiles();
       resetBtn.disabled = true;
       checkBtn.hidden = true;
@@ -334,15 +394,19 @@
   /* ---------- 結果 ---------- */
 
   function renderResult() {
-    const unit = UNITS.find((u) => u.id === session.unitId);
+    const isUnit = session.mode === 'unit';
+    const unit = isUnit ? UNITS.find((u) => u.id === session.unitId) : null;
+    const accent = unit ? unit.accent : '#6366f1';
     const total = session.questions.length;
     const correct = session.correctCount;
     const rate = Math.round((correct / total) * 100);
-    Storage.saveResult(session.unitId, correct, total);
+    // Unit別の最高記録はUnitモードのときだけ保存する
+    if (isUnit) Storage.saveResult(session.unitId, correct, total);
 
     const r = Quiz.roundInfo(session);
     const hasNext = Quiz.hasNextRound(session);
     const wrong = Quiz.wrongAnswers(session);
+    const remainingWrong = Storage.getWrongIds().length;
     const message =
       rate === 100 ? '完璧です！🎉' : rate >= 80 ? 'すばらしい！💪' : rate >= 50 ? 'その調子！📚' : 'もう一度復習しよう！';
 
@@ -363,25 +427,32 @@
       : '<p class="all-correct">全問正解！この調子で続けましょう。✨</p>';
 
     const roundLabel = r.totalRounds > 1 ? `ラウンド ${r.round} / ${r.totalRounds}　` : '';
+    const headLabel = isUnit ? `Unit ${unit.id}` : esc(session.label);
     const nextHtml = hasNext
       ? '<button class="btn btn-primary" id="nextRoundBtn">続きを解く →</button>'
       : '';
+    // 復習モード以外で復習リストに問題が残っていれば「間違えた問題に再挑戦」を出す
+    const reviewBtnHtml = session.mode !== 'review' && remainingWrong > 0
+      ? `<button class="btn btn-ghost" id="reviewBtn">📌 間違えた問題に再挑戦（${remainingWrong}問）</button>`
+      : '';
+    const retryLabel = session.mode === 'review' ? 'もう一度復習' : '最初から';
     const retryClass = hasNext ? 'btn btn-ghost' : 'btn btn-primary';
 
     mountView(`
-      <section class="result" style="--accent:${unit.accent}">
+      <section class="result" style="--accent:${accent}">
         <div class="score-ring" style="--pct:${rate}">
           <div class="score-inner">
             <span class="score-num" data-target="${rate}">0</span><span class="score-pct">%</span>
           </div>
         </div>
         <p class="result-msg">${message}</p>
-        <p class="result-detail">Unit ${unit.id} ／ ${roundLabel}${correct} / ${total} 問正解</p>
+        <p class="result-detail">${headLabel} ／ ${roundLabel}${correct} / ${total} 問正解</p>
         ${hasNext ? '<p class="result-hint">残りの問題があります。「続きを解く」で次の10問に挑戦できます。</p>' : ''}
         ${reviewHtml}
         <div class="result-actions">
           ${nextHtml}
-          <button class="${retryClass}" id="retryBtn">最初から</button>
+          ${reviewBtnHtml}
+          <button class="${retryClass}" id="retryBtn">${retryLabel}</button>
           <button class="btn btn-ghost" id="backBtn">ホームへ</button>
         </div>
       </section>
@@ -395,9 +466,18 @@
         renderQuestion();
       });
     }
+    const reviewBtnEl = document.getElementById('reviewBtn');
+    if (reviewBtnEl) {
+      reviewBtnEl.addEventListener('click', () => {
+        vibrate(8);
+        startReviewQuiz();
+      });
+    }
     document.getElementById('retryBtn').addEventListener('click', () => {
       vibrate(8);
-      startQuiz(session.unitId);
+      if (session.mode === 'random') startRandomQuiz();
+      else if (session.mode === 'review') startReviewQuiz();
+      else startQuiz(session.unitId);
     });
     document.getElementById('backBtn').addEventListener('click', () => {
       vibrate(8);

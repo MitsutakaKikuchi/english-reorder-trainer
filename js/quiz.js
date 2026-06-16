@@ -51,13 +51,37 @@ const Quiz = (() => {
   function createSession(unitId) {
     const pool = QUESTIONS.filter((q) => q.unit === unitId);
     const session = {
+      mode: 'unit',    // 'unit' | 'random' | 'review'
       unitId,
+      label: null,
       pool: shuffle(pool),
       roundStart: 0,
       questions: [],
       index: 0,
       correctCount: 0,
       answers: [], // { question, built, correct }
+    };
+    loadRound(session);
+    return session;
+  }
+
+  /**
+   * 任意の問題リストからセッションを生成する（全範囲ランダム・間違い復習で使用）。
+   * @param {Object[]} questions 出題する問題の配列
+   * @param {{ mode: string, label: string }} meta モード情報
+   * @returns {Object} セッション状態
+   */
+  function createCustomSession(questions, meta) {
+    const session = {
+      mode: meta.mode,
+      unitId: null,
+      label: meta.label,
+      pool: shuffle(questions),
+      roundStart: 0,
+      questions: [],
+      index: 0,
+      correctCount: 0,
+      answers: [],
     };
     loadRound(session);
     return session;
@@ -112,6 +136,7 @@ const Quiz = (() => {
 
   return {
     createSession,
+    createCustomSession,
     current,
     check,
     next,
