@@ -232,9 +232,8 @@
     const pct = Math.round(((p.current - 1) / p.total) * 100);
     const roundLabel = r.totalRounds > 1 ? `ラウンド ${r.round} / ${r.totalRounds}` : '';
 
-    let placed = [];          // q.bank のindex を並べた順
+    let placed = [];     // q.bank のindex を並べた順
     let answered = false;
-    let selectedBank = null;  // 選択中の bank index（null = 未選択）
     let resetPending = false;
     let resetTimer = null;
 
@@ -282,7 +281,7 @@
     function renderTiles() {
       // 解答エリア
       if (placed.length === 0) {
-        answerArea.innerHTML = '<span class="answer-placeholder">語句を選んで、もう一度タップすると追加されます</span>';
+        answerArea.innerHTML = '<span class="answer-placeholder">下の語句をタップして英文を作ろう</span>';
       } else {
         answerArea.innerHTML = placed.map((bi, pos) => {
           let extra = '';
@@ -298,42 +297,26 @@
         .map((item, bi) => ({ item, bi }))
         .filter(({ bi }) => !placed.includes(bi));
       bankEl.innerHTML = remaining.length
-        ? remaining.map(({ item, bi }) => {
-            const sel = bi === selectedBank ? 'tile--selected' : '';
-            return tileHtml(item.text, 'bank', bi, sel);
-          }).join('')
+        ? remaining.map(({ item, bi }) => tileHtml(item.text, 'bank', bi)).join('')
         : '<span class="bank-empty">すべて使いました</span>';
 
       checkBtn.disabled = answered || placed.length === 0;
     }
 
-    // 解答エリア：配置済みチップを取り除く
     answerArea.addEventListener('click', (e) => {
       const t = e.target.closest('.tile');
-      if (answered) return;
-      if (t) {
-        const pos = Number(t.dataset.i);
-        placed.splice(pos, 1);
-        selectedBank = null;
-        vibrate(6);
-        renderTiles();
-      }
+      if (!t || answered) return;
+      const pos = Number(t.dataset.i);
+      placed.splice(pos, 1);
+      vibrate(6);
+      renderTiles();
     });
 
-    // 語句バンク：1回目タップで選択（ハイライト）、2回目タップで解答エリアに追加
     bankEl.addEventListener('click', (e) => {
       const t = e.target.closest('.tile');
       if (!t || answered) return;
       const bi = Number(t.dataset.i);
-      if (placed.includes(bi)) return;
-      if (selectedBank === bi) {
-        // 同じチップを再タップ → 解答エリアへ追加
-        placed.push(bi);
-        selectedBank = null;
-      } else {
-        // 別のチップをタップ → 選択状態に切り替え
-        selectedBank = bi;
-      }
+      if (!placed.includes(bi)) placed.push(bi);
       vibrate(6);
       renderTiles();
     });
