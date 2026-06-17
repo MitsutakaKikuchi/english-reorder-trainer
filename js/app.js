@@ -426,7 +426,6 @@
     const r = Quiz.roundInfo(session);
     const hasNext = Quiz.hasNextRound(session);
     const wrong = Quiz.wrongAnswers(session);
-    const remainingWrong = Storage.getWrongIds().length;
     const message =
       rate === 100 ? '完璧です！🎉' : rate >= 80 ? 'すばらしい！💪' : rate >= 50 ? 'その調子！📚' : 'もう一度復習しよう！';
 
@@ -451,9 +450,9 @@
     const nextHtml = hasNext
       ? '<button class="btn btn-primary" id="nextRoundBtn">続きを解く →</button>'
       : '';
-    // 復習モード以外で復習リストに問題が残っていれば「間違えた問題に再挑戦」を出す
-    const reviewBtnHtml = session.mode !== 'review' && remainingWrong > 0
-      ? `<button class="btn btn-ghost" id="reviewBtn">📌 間違えた問題に再挑戦（${remainingWrong}問）</button>`
+    // 復習モード以外で今ラウンドに間違いがあれば「間違えた問題に再挑戦」を出す
+    const reviewBtnHtml = session.mode !== 'review' && wrong.length > 0
+      ? `<button class="btn btn-ghost" id="reviewBtn">📌 間違えた問題に再挑戦（${wrong.length}問）</button>`
       : '';
     const retryLabel = session.mode === 'review' ? 'もう一度復習' : '最初から';
     const retryClass = hasNext ? 'btn btn-ghost' : 'btn btn-primary';
@@ -490,7 +489,11 @@
     if (reviewBtnEl) {
       reviewBtnEl.addEventListener('click', () => {
         vibrate(8);
-        startReviewQuiz();
+        session = Quiz.createCustomSession(
+          wrong.map((a) => a.question),
+          { mode: 'review', label: 'このラウンドの間違い復習' }
+        );
+        renderQuestion();
       });
     }
     document.getElementById('retryBtn').addEventListener('click', () => {
