@@ -523,8 +523,8 @@ tbody tr:nth-child(even) td { background: var(--surface-2); }
 .review-e { margin: 0; font-size: 0.85rem; color: var(--text-soft); }
 .review-tip { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 0.82rem; color: #d97706; }
 .all-correct { background: var(--ok-bg); color: var(--ok); font-weight: 700; padding: 18px; border-radius: var(--radius); }
-.result-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
-.result-actions .btn { flex: 1; min-width: 120px; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.result-actions .btn { flex: 1; min-width: 140px; }
 
 /* ====================== 紙吹雪 ====================== */
 .confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
@@ -581,6 +581,30 @@ body.no-scroll { overflow: hidden; }
 }
 .overlay-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 0 16px; }
 .overlay-back { width: 100%; margin: 4px 0 16px; }
+
+/* ====================== スマホ向けボタンレイアウト ====================== */
+@media (max-width: 480px) {
+  /* 結果画面ボタン：縦積み */
+  .result-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .result-actions .btn {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+  /* クイズ操作ボタン（↺リセット＋答え合わせ）：縦積み */
+  .quiz-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-reset,
+  .btn-check {
+    flex: none;
+    width: 100%;
+  }
+}
 
 /* ====================== モーション低減 ====================== */
 @media (prefers-reduced-motion: reduce) {
