@@ -325,6 +325,17 @@ tbody tr:nth-child(even) td { background: var(--surface-2); }
   margin-bottom: 10px;
 }
 .quiz-prompt { margin: 0 0 16px; font-size: 1.12rem; font-weight: 700; line-height: 1.5; }
+.transform-note {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+  background: color-mix(in srgb, #f59e0b 13%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+  border-radius: var(--radius-sm);
+}
+.transform-note b { color: #d97706; }
 
 /* ---- 解答エリア ---- */
 .answer-area {

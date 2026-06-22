@@ -249,6 +249,7 @@
         </div>
         <span class="quiz-cat">${session.mode !== 'unit' ? `Unit ${unit.id}・` : ''}${esc(q.cat)}</span>
         <h2 class="quiz-prompt">${esc(q.ja)}</h2>
+        ${q.transform ? '<div class="transform-note">✏️ タイルの語句は<b>適切な形に変化</b>させて並べよう（一部は be などを補う必要あり）</div>' : ''}
 
         <div class="answer-area" id="answerArea" aria-label="組み立てた英文"></div>
         <div class="bank" id="bank" aria-label="語句"></div>
