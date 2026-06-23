@@ -5,6 +5,7 @@
 const Storage = (() => {
   const STORAGE_KEY = 'real-grammar-reorder-progress-v1';
   const WRONG_KEY = 'real-grammar-reorder-wrong-v1';
+  const SELECT_KEY = 'real-grammar-reorder-selected-units-v1';
 
   /** 全進捗を読み込む。 */
   function loadAll() {
@@ -101,8 +102,37 @@ const Storage = (() => {
     }
   }
 
+  /* ---------- ランダム出題の対象セクション（Unit）設定 ---------- */
+
+  /** デフォルトの選択（全Unit）を返す。 */
+  function allUnitIds() {
+    return (typeof UNITS !== 'undefined' && Array.isArray(UNITS)) ? UNITS.map((u) => u.id) : [];
+  }
+
+  /** ランダム出題の対象Unit ID一覧を取得する（未設定なら全Unit）。 */
+  function getSelectedUnits() {
+    try {
+      const raw = localStorage.getItem(SELECT_KEY);
+      const arr = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(arr) && arr.length) return arr;
+    } catch (err) {
+      console.warn('出題設定の読み込みに失敗しました:', err);
+    }
+    return allUnitIds();
+  }
+
+  /** ランダム出題の対象Unitを保存する。 */
+  function setSelectedUnits(ids) {
+    try {
+      localStorage.setItem(SELECT_KEY, JSON.stringify(ids));
+    } catch (err) {
+      console.warn('出題設定の保存に失敗しました:', err);
+    }
+  }
+
   return {
     loadAll, getProgress, saveResult, clearAll,
     getWrongIds, addWrong, removeWrong, clearWrong,
+    getSelectedUnits, setSelectedUnits,
   };
 })();

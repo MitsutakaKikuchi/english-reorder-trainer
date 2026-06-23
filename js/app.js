@@ -116,7 +116,7 @@
 
     document.getElementById('randomBtn').addEventListener('click', () => {
       vibrate(8);
-      startRandomQuiz();
+      renderRandomSettings();
     });
     const reviewBtn = document.getElementById('reviewBtn');
     if (!reviewDisabled) {
@@ -202,9 +202,88 @@
     renderQuestion();
   }
 
-  /** 全 Unit の問題を混ぜてランダム出題する。 */
-  function startRandomQuiz() {
-    session = Quiz.createCustomSession(QUESTIONS, { mode: 'random', label: '全範囲ランダム' });
+  /* ---------- ランダム出題の設定画面 ---------- */
+
+  /** ランダム出題の対象セクション（Unit）を選ぶ設定画面。 */
+  function renderRandomSettings() {
+    homeBtn.classList.remove('hidden');
+    const selected = new Set(Storage.getSelectedUnits());
+
+    const chips = UNITS.map((u) => {
+      const count = QUESTIONS.filter((q) => q.unit === u.id).length;
+      const on = selected.has(u.id);
+      return `
+        <button class="sec-chip${on ? ' sec-chip--on' : ''}" data-unit="${u.id}" style="--accent:${u.accent}" aria-pressed="${on}">
+          <span class="sec-chip-num">Unit ${u.id}</span>
+          <span class="sec-chip-title">${esc(u.title)}</span>
+          <span class="sec-chip-count">${count}問</span>
+        </button>`;
+    }).join('');
+
+    mountView(`
+      <section class="settings">
+        <div class="settings-head">
+          <h1 class="settings-title">🎲 ランダム出題の設定</h1>
+          <p class="settings-sub">出題する Unit（セクション）を選んでください。複数選択できます。</p>
+        </div>
+        <div class="settings-actions-top">
+          <button class="btn btn-ghost btn-sm" id="selAll" type="button">すべて選択</button>
+          <button class="btn btn-ghost btn-sm" id="selNone" type="button">すべて解除</button>
+        </div>
+        <div class="sec-grid">${chips}</div>
+        <div class="settings-foot">
+          <span class="settings-count" id="selCount"></span>
+          <button class="btn btn-primary" id="startRandomBtn" type="button">この設定で開始</button>
+        </div>
+      </section>
+    `);
+
+    const countEl = document.getElementById('selCount');
+    const startBtn = document.getElementById('startRandomBtn');
+    const selectedIds = () => [...viewEl.querySelectorAll('.sec-chip--on')].map((b) => Number(b.dataset.unit));
+    const updateCount = () => {
+      const ids = selectedIds();
+      const n = QUESTIONS.filter((q) => ids.includes(q.unit)).length;
+      countEl.textContent = `選択中：${ids.length} Unit ／ ${n} 問`;
+      startBtn.disabled = ids.length === 0;
+    };
+
+    viewEl.querySelectorAll('.sec-chip').forEach((b) => {
+      b.addEventListener('click', () => {
+        const on = b.classList.toggle('sec-chip--on');
+        b.setAttribute('aria-pressed', String(on));
+        vibrate(6);
+        updateCount();
+      });
+    });
+    document.getElementById('selAll').addEventListener('click', () => {
+      viewEl.querySelectorAll('.sec-chip').forEach((b) => { b.classList.add('sec-chip--on'); b.setAttribute('aria-pressed', 'true'); });
+      vibrate(8); updateCount();
+    });
+    document.getElementById('selNone').addEventListener('click', () => {
+      viewEl.querySelectorAll('.sec-chip').forEach((b) => { b.classList.remove('sec-chip--on'); b.setAttribute('aria-pressed', 'false'); });
+      vibrate(8); updateCount();
+    });
+    startBtn.addEventListener('click', () => {
+      const ids = selectedIds();
+      if (ids.length === 0) return;
+      Storage.setSelectedUnits(ids);
+      vibrate(8);
+      startRandomQuiz(ids);
+    });
+
+    updateCount();
+  }
+
+  /** 選択された Unit の問題を混ぜてランダム出題する（未指定なら保存済み設定）。 */
+  function startRandomQuiz(unitIds) {
+    const ids = (unitIds && unitIds.length) ? unitIds : Storage.getSelectedUnits();
+    const pool = QUESTIONS.filter((q) => ids.includes(q.unit));
+    if (pool.length === 0) return renderRandomSettings();
+    const label = ids.length >= UNITS.length
+      ? '全範囲ランダム'
+      : `ランダム（${ids.length} Unit・${pool.length}問）`;
+    session = Quiz.createCustomSession(pool, { mode: 'random', label });
     renderQuestion();
   }
 
@@ -448,15 +527,22 @@
 
     const roundLabel = r.totalRounds > 1 ? `ラウンド ${r.round} / ${r.totalRounds}　` : '';
     const headLabel = isUnit ? `Unit ${unit.id}` : esc(session.label);
+    // 復習セッションから元のクイズ（続きのあるセッション）へ戻れるか
+    const cont = session.continueSession;
+    const canContinueParent = !!(cont && Quiz.hasNextRound(cont));
     const nextHtml = hasNext
       ? '<button class="btn btn-primary" id="nextRoundBtn">続きを解く →</button>'
       : '';
-    // 復習モード以外で今ラウンドに間違いがあれば「間違えた問題に再挑戦」を出す
-    const reviewBtnHtml = session.mode !== 'review' && wrong.length > 0
+    // 復習を終えたあと、元のクイズの残りラウンドへ進む導線
+    const continueParentHtml = canContinueParent
+      ? '<button class="btn btn-primary" id="continueParentBtn">▶ 元のクイズの続きへ</button>'
+      : '';
+    // 今ラウンドに間違いがあれば「間違えた問題に再挑戦」を出す（復習モードでも再挑戦可）
+    const reviewBtnHtml = wrong.length > 0
       ? `<button class="btn btn-ghost" id="reviewBtn">📌 間違えた問題に再挑戦（${wrong.length}問）</button>`
       : '';
     const retryLabel = session.mode === 'review' ? 'もう一度復習' : '最初から';
-    const retryClass = hasNext ? 'btn btn-ghost' : 'btn btn-primary';
+    const retryClass = (hasNext || canContinueParent) ? 'btn btn-ghost' : 'btn btn-primary';
 
     mountView(`
       <section class="result" style="--accent:${accent}">
@@ -467,10 +553,12 @@
         </div>
         <p class="result-msg">${message}</p>
         <p class="result-detail">${headLabel} ／ ${roundLabel}${correct} / ${total} 問正解</p>
-        ${hasNext ? '<p class="result-hint">残りの問題があります。「続きを解く」で次の10問に挑戦できます。</p>' : ''}
+        ${hasNext ? '<p class="result-hint">残りの問題があります。「続きを解く」で次の10問に挑戦できます。</p>'
+          : canContinueParent ? '<p class="result-hint">復習お疲れさまでした。「元のクイズの続きへ」で残りのラウンドに進めます。</p>' : ''}
         ${reviewHtml}
         <div class="result-actions">
           ${nextHtml}
+          ${continueParentHtml}
           ${reviewBtnHtml}
           <button class="${retryClass}" id="retryBtn">${retryLabel}</button>
           <button class="btn btn-ghost" id="backBtn">ホームへ</button>
@@ -486,13 +574,26 @@
         renderQuestion();
       });
     }
+    const continueParentBtn = document.getElementById('continueParentBtn');
+    if (continueParentBtn) {
+      continueParentBtn.addEventListener('click', () => {
+        vibrate(8);
+        session = cont;               // 元のクイズへ戻す
+        Quiz.startNextRound(session); // 残りのラウンドへ進む
+        renderQuestion();
+      });
+    }
     const reviewBtnEl = document.getElementById('reviewBtn');
     if (reviewBtnEl) {
       reviewBtnEl.addEventListener('click', () => {
         vibrate(8);
+        // 復習後に元のクイズへ戻れるよう、続きのあるセッションを引き継ぐ
+        const contForReview = session.mode === 'review'
+          ? session.continueSession
+          : (Quiz.hasNextRound(session) ? session : null);
         session = Quiz.createCustomSession(
           wrong.map((a) => a.question),
-          { mode: 'review', label: 'このラウンドの間違い復習' }
+          { mode: 'review', label: '間違えた問題の復習', continueSession: contForReview }
         );
         renderQuestion();
       });

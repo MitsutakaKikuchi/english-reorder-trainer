@@ -256,6 +256,55 @@ body {
 @keyframes growBar { from { transform: scaleX(0); transform-origin: left; } }
 .home-foot { text-align: center; color: var(--text-mute); font-size: 0.85rem; margin-top: 26px; }
 
+/* ====================== ランダム出題 設定画面 ====================== */
+.settings-head { text-align: center; margin-bottom: 18px; }
+.settings-title { margin: 8px 0 6px; font-size: 1.3rem; font-weight: 800; }
+.settings-sub { margin: 0; color: var(--text-soft); font-size: 0.88rem; }
+.settings-actions-top { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+.btn-sm { min-height: 38px; padding: 0 16px; font-size: 0.85rem; }
+.sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+@media (min-width: 600px) { .sec-grid { grid-template-columns: 1fr 1fr 1fr; } }
+.sec-chip {
+  position: relative;
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s, border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.sec-chip:active { transform: scale(0.97); }
+.sec-chip-num { font-size: 0.72rem; font-weight: 800; color: var(--text-mute); letter-spacing: 0.03em; }
+.sec-chip-title { font-size: 0.84rem; font-weight: 700; line-height: 1.35; padding-right: 16px; }
+.sec-chip-count { font-size: 0.72rem; color: var(--text-mute); }
+.sec-chip--on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.sec-chip--on .sec-chip-num { color: var(--accent); }
+.sec-chip--on::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: var(--accent);
+  font-weight: 900;
+}
+.settings-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 62%, transparent);
+}
+.settings-count { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--text-soft); }
+#startRandomBtn { width: 100%; }
+
 /* ====================== 文法解説 ====================== */
 .unit-head { text-align: center; margin-bottom: 22px; }
 .unit-num {

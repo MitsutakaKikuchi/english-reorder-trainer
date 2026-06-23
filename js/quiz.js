@@ -54,6 +54,7 @@ const Quiz = (() => {
       mode: 'unit',    // 'unit' | 'random' | 'review'
       unitId,
       label: null,
+      continueSession: null, // 復習後に続けて戻る元セッション
       pool: shuffle(pool),
       roundStart: 0,
       questions: [],
@@ -76,6 +77,7 @@ const Quiz = (() => {
       mode: meta.mode,
       unitId: null,
       label: meta.label,
+      continueSession: meta.continueSession || null,
       pool: shuffle(questions),
       roundStart: 0,
       questions: [],
