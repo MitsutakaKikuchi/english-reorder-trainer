@@ -29,13 +29,25 @@ const Quiz = (() => {
    *  bank   : シャッフルした語句チップ {text, dummy} の配列（ダミー含む）
    */
   function prepare(q) {
-    const tokens = splitChips(q.chips);
+    // 語形変化モード（tiles 定義あり）：各タイルは候補 forms と現在の選択 idx を持つ。
+    //   fixed=true …固定（語形変化なし）、それ以外…タップで forms を循環、answer が正解形。
+    if (q.tiles && q.tiles.length) {
+      const tiles = q.tiles.map((t) => (typeof t === 'string'
+        ? { forms: [t], idx: 0, fixed: true, dummy: false }
+        : { forms: t.forms.slice(), idx: 0, fixed: false, dummy: false, answer: t.answer }));
+      const tokens = tiles.map((t) => (t.fixed ? t.forms[0] : t.answer));
+      const dummyTiles = splitChips(q.dummies).map((d) => ({ forms: [d], idx: 0, fixed: true, dummy: true }));
+      const bank = shuffle(tiles.concat(dummyTiles));
+      return { ...q, tokens, bank, formMode: true };
+    }
+    // 通常モード：全タイル固定（1語形のみ）。
+    const toks = splitChips(q.chips);
     const dummies = splitChips(q.dummies);
     const bank = shuffle(
-      tokens.map((t) => ({ text: t, dummy: false }))
-        .concat(dummies.map((t) => ({ text: t, dummy: true })))
+      toks.map((t) => ({ forms: [t], idx: 0, fixed: true, dummy: false }))
+        .concat(dummies.map((t) => ({ forms: [t], idx: 0, fixed: true, dummy: true })))
     );
-    return { ...q, tokens, bank };
+    return { ...q, tokens: toks, bank };
   }
 
   /** 現在のラウンドの問題をプールから切り出してセットする。 */

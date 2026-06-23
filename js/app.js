@@ -315,6 +315,8 @@
     let answered = false;
     let resetPending = false;
     let resetTimer = null;
+    const hasFormTile = q.bank.some((it) => !it.fixed && !it.dummy);
+    const tileText = (it) => it.forms[it.idx];
 
     mountView(`
       <section class="quiz" style="--accent:${unit.accent}">
@@ -328,7 +330,7 @@
         </div>
         <span class="quiz-cat">${session.mode !== 'unit' ? `Unit ${unit.id}・` : ''}${esc(q.cat)}</span>
         <h2 class="quiz-prompt">${esc(q.ja)}</h2>
-        ${q.transform ? '<div class="transform-note">✏️ タイルの語句は<b>適切な形に変化</b>させて並べよう（一部は be などを補う必要あり）</div>' : ''}
+        ${hasFormTile ? '<div class="transform-note">✏️ <b>オレンジのタイル</b>はタップで語形が変わります。正しい形に直して並べよう（<b>✕</b>で削除）。</div>' : ''}
 
         <div class="answer-area" id="answerArea" aria-label="組み立てた英文"></div>
         <div class="bank" id="bank" aria-label="語句"></div>
@@ -354,22 +356,21 @@
     const feedbackEl = document.getElementById('feedback');
     const nextBtn = document.getElementById('nextBtn');
 
-    function tileHtml(text, loc, idx, extra) {
-      return `<button class="tile ${extra || ''}" data-loc="${loc}" data-i="${idx}">${esc(text)}</button>`;
-    }
-
     function renderTiles() {
       // 解答エリア
       if (placed.length === 0) {
         answerArea.innerHTML = '<span class="answer-placeholder">下の語句をタップして英文を作ろう</span>';
       } else {
         answerArea.innerHTML = placed.map((bi, pos) => {
-          let extra = '';
+          const item = q.bank[bi];
+          const isForm = !item.fixed && !item.dummy;
+          let cls = 'tile' + (isForm ? ' tile--form' : '');
           if (answered) {
-            const correctText = q.tokens[pos];
-            extra = q.bank[bi].text === correctText ? 'tile--ok' : 'tile--ng';
+            cls += tileText(item) === q.tokens[pos] ? ' tile--ok' : ' tile--ng';
           }
-          return tileHtml(q.bank[bi].text, 'ans', pos, extra);
+          const cyc = (isForm && !answered) ? '<span class="tile-cyc" aria-hidden="true">⇅</span>' : '';
+          const xb = answered ? '' : '<span class="tile-x" data-x="1" aria-label="削除">✕</span>';
+          return `<button class="${cls}" data-loc="ans" data-i="${pos}">${cyc}<span class="tile-txt">${esc(tileText(item))}</span>${xb}</button>`;
         }).join('');
       }
       // 語句バンク（未使用のみ）
@@ -377,17 +378,28 @@
         .map((item, bi) => ({ item, bi }))
         .filter(({ bi }) => !placed.includes(bi));
       bankEl.innerHTML = remaining.length
-        ? remaining.map(({ item, bi }) => tileHtml(item.text, 'bank', bi)).join('')
+        ? remaining.map(({ item, bi }) => {
+            const isForm = !item.fixed && !item.dummy;
+            return `<button class="tile${isForm ? ' tile--form' : ''}" data-loc="bank" data-i="${bi}"><span class="tile-txt">${esc(tileText(item))}</span></button>`;
+          }).join('')
         : '<span class="bank-empty">すべて使いました</span>';
 
       checkBtn.disabled = answered || placed.length === 0;
     }
 
     answerArea.addEventListener('click', (e) => {
-      const t = e.target.closest('.tile');
-      if (!t || answered) return;
-      const pos = Number(t.dataset.i);
-      placed.splice(pos, 1);
+      if (answered) return;
+      const tileEl = e.target.closest('.tile');
+      if (!tileEl) return;
+      const pos = Number(tileEl.dataset.i);
+      const item = q.bank[placed[pos]];
+      if (e.target.closest('.tile-x')) {
+        placed.splice(pos, 1);                            // ✕：削除
+      } else if (item && !item.fixed && !item.dummy) {
+        item.idx = (item.idx + 1) % item.forms.length;    // 本体タップ：語形を次へ
+      } else {
+        placed.splice(pos, 1);                            // 固定タイルはタップで削除
+      }
       vibrate(6);
       renderTiles();
     });
@@ -439,7 +451,7 @@
     checkBtn.addEventListener('click', () => {
       if (answered || placed.length === 0) return;
       answered = true;
-      const built = placed.map((bi) => q.bank[bi].text);
+      const built = placed.map((bi) => tileText(q.bank[bi]));
       const result = Quiz.check(session, built);
 
       // 復習リストを更新（不正解→追加、正解→除外）

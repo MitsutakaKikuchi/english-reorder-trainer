@@ -1,11 +1,10 @@
 /**
  * Real Grammar for Creative Communication（Unit 1-15）の並び替え問題データ。
- * 教科書スキャン（英語-04〜33 の EXERCISES）と授業スライド（IMG_5433〜5678）に準拠。
- * 解答はスペル・文法を修正済み。
- * 選択語句(chips)は「1語または2語」で分割。元が○×判定の問題は除外。
- * transform:true の問題は「語形変化モード」：タイルは原形で、答え(sentence)が正しい活用形。
+ * 教科書スキャン（英語-04〜33）と授業スライド（IMG_5433〜5678）に準拠。解答はスペル・文法を修正済み。
+ * 通常問題: chips（1〜2語の語句、" / "区切り）。○×判定は除外。
+ * 語形変化問題: tiles（文字列=固定タイル、{forms,answer}=タップで語形が変わるタイル）。
  *
- * 各問: id, unit, cat, ja, chips(" / "区切り), dummies(任意), transform(任意), sentence, hint, exp, tip
+ * 各問: id, unit, cat, ja, chips|tiles, dummies(任意), transform(任意), sentence, hint, exp, tip
  */
 const QUESTIONS = [
   { id: "u1-1", unit: 1, cat: "名詞句",
@@ -839,7 +838,7 @@ const QUESTIONS = [
     tip: "how + 主語 + can + 原形。" },
   { id: "u12-1", unit: 12, cat: "受け身",
     ja: "「少し多めに払うように求められた」",
-    chips: "I / ask / to / pay / slightly more / than that",
+    tiles: ["I",{"forms":["ask","asked","is asked","was asked"],"answer":"was asked"},"to","pay","slightly more","than that"],
     transform: true,
     sentence: "I was asked to pay slightly more than that.",
     hint: "ask を受け身に：be asked to do「〜するよう求められる」。",
@@ -847,7 +846,7 @@ const QUESTIONS = [
     tip: "「〜するよう求められた」= was asked to do。" },
   { id: "u12-2", unit: 12, cat: "受け身",
     ja: "「消費税が価格に加えられる」",
-    chips: "the consumption tax / add / to / the price",
+    tiles: ["the consumption tax",{"forms":["add","added","is added","are added","was added"],"answer":"is added"},"to","the price"],
     transform: true,
     sentence: "The consumption tax is added to the price.",
     hint: "add を現在の受け身 is added に。",
@@ -855,7 +854,7 @@ const QUESTIONS = [
     tip: "受け身は be + 過去分詞。" },
   { id: "u12-3", unit: 12, cat: "受け身・過去",
     ja: "「この間接税は1990年代後半に導入された」",
-    chips: "this / indirect tax / introduce / in / the / late / 1980s",
+    tiles: ["this","indirect tax",{"forms":["introduce","introduced","is introduced","was introduced"],"answer":"was introduced"},"in","the","late","1980s"],
     transform: true,
     sentence: "This indirect tax was introduced in the late 1980s.",
     hint: "introduce を過去の受け身 was introduced に。",
@@ -863,7 +862,7 @@ const QUESTIONS = [
     tip: "過去の受け身 = was/were + 過去分詞。" },
   { id: "u12-4", unit: 12, cat: "受け身・現在完了",
     ja: "「それは何度も引き上げられた」",
-    chips: "it / has / be / raise / several times",
+    tiles: ["it","has",{"forms":["raise","raised","been raised","being raised"],"answer":"been raised"},"several times"],
     transform: true,
     sentence: "It has been raised several times.",
     hint: "raise を現在完了の受け身に。be→been、raise→raised。",
@@ -871,7 +870,7 @@ const QUESTIONS = [
     tip: "現在完了の受け身 = have been + 過去分詞。" },
   { id: "u12-5", unit: 12, cat: "受け身・未来",
     ja: "「おそらく近い将来また引き上げられるだろう」",
-    chips: "probably / it / will / raise / again / in / the near / future",
+    tiles: ["probably","it","will",{"forms":["raise","raised","be raised","been raised"],"answer":"be raised"},"again","in","the near","future"],
     transform: true,
     sentence: "Probably it will be raised again in the near future.",
     hint: "raise を未来の受け身 will be raised に（be を補う）。",
@@ -879,7 +878,7 @@ const QUESTIONS = [
     tip: "未来の受け身 = will be + 過去分詞。" },
   { id: "u12-6", unit: 12, cat: "受け身・疑問",
     ja: "「罰金にも消費税が加わるの？」",
-    chips: "will / the tax / add / to / the fine / as / well",
+    tiles: ["will","the tax",{"forms":["add","added","be added","is added"],"answer":"be added"},"to","the fine","as","well"],
     transform: true,
     sentence: "Will the tax be added to the fine as well?",
     hint: "add を未来の受け身の疑問に。Will 主語 be added …?",
@@ -908,7 +907,7 @@ const QUESTIONS = [
     tip: "will be 過去分詞。" },
   { id: "u12-10", unit: 12, cat: "受け身（感情）",
     ja: "「私は科学に興味がある」",
-    chips: "I / interest / in / science",
+    tiles: ["I'm",{"forms":["interest","interesting","interested"],"answer":"interested"},"in","science"],
     transform: true,
     sentence: "I'm interested in science.",
     hint: "interest を be interested in に。",
@@ -916,7 +915,7 @@ const QUESTIONS = [
     tip: "be interested in「〜に興味がある」。" },
   { id: "u12-11", unit: 12, cat: "受け身（with）",
     ja: "「今朝、地面は雪で覆われていた」",
-    chips: "the ground / cover / with / snow / this morning",
+    tiles: ["the ground",{"forms":["cover","covered","is covered","was covered"],"answer":"was covered"},"with","snow","this morning"],
     transform: true,
     sentence: "The ground was covered with snow this morning.",
     hint: "cover を過去の受け身 was covered に。前置詞は with。",
@@ -924,7 +923,7 @@ const QUESTIONS = [
     tip: "be covered with「〜で覆われている」。" },
   { id: "u12-12", unit: 12, cat: "受け身（it）",
     ja: "「アメリカ人は賭けごとが好きだとよく言われる」",
-    chips: "it / is / often / say / that / Americans / like / gambling",
+    tiles: ["it","is","often",{"forms":["say","says","said","saying"],"answer":"said"},"that","Americans","like","gambling"],
     transform: true,
     sentence: "It is often said that Americans like gambling.",
     hint: "say を受け身 is said に。It is said that …。",
@@ -939,7 +938,7 @@ const QUESTIONS = [
     tip: "「〜を上げること」= Raising 〜。" },
   { id: "u13-1", unit: 13, cat: "be動詞",
     ja: "「彼は病気なの？」",
-    chips: "is / he / sick",
+    tiles: ["is","he","sick"],
     transform: true,
     sentence: "Is he sick?",
     hint: "be動詞の疑問。He = sick。",
@@ -947,7 +946,7 @@ const QUESTIONS = [
     tip: "be動詞を前に出す。" },
   { id: "u13-2", unit: 13, cat: "be動詞（get＋過去分詞）",
     ja: "「彼は昨夜交通事故に巻き込まれて重傷を負った」",
-    chips: "he / got / involve / in / a traffic accident / last night",
+    tiles: ["he","got",{"forms":["involve","involved","involving"],"answer":"involved"},"in","a traffic accident","last night"],
     transform: true,
     sentence: "He got involved in a traffic accident last night.",
     hint: "involve を過去分詞 involved に。get involved in。",
@@ -955,7 +954,7 @@ const QUESTIONS = [
     tip: "get involved in「〜に巻き込まれる」。" },
   { id: "u13-3", unit: 13, cat: "be動詞",
     ja: "「彼は入院しているの？」",
-    chips: "is / he / in hospital",
+    tiles: ["is","he","in hospital"],
     transform: true,
     sentence: "Is he in hospital?",
     hint: "be動詞の疑問。in hospital「入院して」。",
@@ -963,7 +962,7 @@ const QUESTIONS = [
     tip: "in hospital は無冠詞。" },
   { id: "u13-4", unit: 13, cat: "be動詞（SVC）",
     ja: "「彼の奥さんが看護師なんだ」",
-    chips: "his / wife / is / a nurse",
+    tiles: ["his","wife","is","a nurse"],
     transform: true,
     sentence: "His wife is a nurse.",
     hint: "His wife = a nurse。",
@@ -971,7 +970,7 @@ const QUESTIONS = [
     tip: "SVC は S = C。" },
   { id: "u13-5", unit: 13, cat: "受け身進行形",
     ja: "「彼は家で妹さんに看病してもらっている」",
-    chips: "he / is / be / take care of / at home",
+    tiles: ["he","is",{"forms":["be","being","been"],"answer":"being"},{"forms":["take care of","taken care of","taking care of"],"answer":"taken care of"},"at home"],
     transform: true,
     sentence: "He is being taken care of at home.",
     hint: "be→being、take care of→taken care of（受け身進行形）。",
