@@ -46,6 +46,30 @@
     }
   }
 
+  /** 最終学習日時を「今日／きのう／N日前」の相対表記にする。 */
+  function formatStudiedAt(ts) {
+    if (!ts) return null;
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const startOfToday = new Date().setHours(0, 0, 0, 0);
+    const days = Math.floor((startOfToday - new Date(ts).setHours(0, 0, 0, 0)) / MS_PER_DAY);
+    if (days <= 0) return '今日';
+    if (days === 1) return 'きのう';
+    return `${days}日前`;
+  }
+
+  /** ホーム上部の学習サマリー（苦手数・習得済み数・最終学習）の HTML を返す。 */
+  function buildSummaryHtml() {
+    const s = Storage.getSummary();
+    if (s.tracked === 0) return '';
+    const studied = formatStudiedAt(s.lastStudiedAt);
+    return `
+      <div class="summary" aria-label="学習サマリー">
+        <span class="summary-item"><b>${s.weak}</b> 苦手</span>
+        <span class="summary-item"><b>${s.mastered}</b> 習得済み</span>
+        ${studied ? `<span class="summary-item summary-item--muted">最終学習 ${studied}</span>` : ''}
+      </div>`;
+  }
+
   /* ---------- ホーム ---------- */
 
   function renderHome() {
@@ -86,6 +110,7 @@
           <p class="hero-sub">Real Grammar for Creative Communication ｜ Unit 1〜15</p>
           <p class="hero-note">語句をタップして英文を組み立てよう。解説・ヒント付き。</p>
         </div>
+        ${buildSummaryHtml()}
         <div class="special-grid">
           <button class="special-card special-card--random" id="randomBtn">
             <span class="special-icon">🎲</span>
@@ -98,7 +123,7 @@
             <span class="special-icon">🎯</span>
             <span class="special-body">
               <span class="special-title">よく間違える問題を集中学習</span>
-              <span class="special-sub">${reviewDisabled ? 'まだ苦手な問題はありません' : `苦手リスト ${weakCount} 問・ミスの多い順に出題`}</span>
+              <span class="special-sub">${reviewDisabled ? 'まだ苦手な問題はありません' : `苦手リスト ${weakCount} 問・苦手な順に出題`}</span>
             </span>
           </button>
         </div>

@@ -15,7 +15,7 @@
   --text-soft: #555c75;
   --text-mute: #7a81a0;
   --border: #e3e6f5;
-  --accent: #6366f1;
+  --accent: #ec4899;
   --ok: #0d9f6e;
   --ok-bg: #e1faf0;
   --ng: #ef4444;
@@ -30,7 +30,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14172a;
-    --bg-grad: radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.22) 0%, transparent 45%),
+    --bg-grad: radial-gradient(circle at 10% 0%, rgba(236, 72, 153, 0.22) 0%, transparent 45%),
       radial-gradient(circle at 100% 15%, rgba(236, 72, 153, 0.16) 0%, transparent 40%),
       radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.16) 0%, transparent 45%);
     --surface: #1f2338;
@@ -156,6 +156,29 @@ body {
 
 .card-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 600px) { .card-grid { grid-template-columns: 1fr 1fr; } }
+
+/* 学習サマリー（苦手数・習得済み数・最終学習） */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.summary-item {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+.summary-item b {
+  font-size: 1.1rem;
+  margin-right: 2px;
+}
+.summary-item--muted { opacity: 0.7; }
 
 /* ホーム上部の特別メニュー（全範囲ランダム・間違い復習） */
 .special-grid {
