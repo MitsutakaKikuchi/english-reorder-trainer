@@ -76,8 +76,8 @@
         </button>`;
     }).join('');
 
-    const wrongCount = Storage.getWrongIds().length;
-    const reviewDisabled = wrongCount === 0;
+    const weakCount = Storage.getWeakIds().length;
+    const reviewDisabled = weakCount === 0;
 
     mountView(`
       <section class="home">
@@ -95,10 +95,10 @@
             </span>
           </button>
           <button class="special-card special-card--review" id="reviewBtn" ${reviewDisabled ? 'disabled' : ''}>
-            <span class="special-icon">📌</span>
+            <span class="special-icon">🎯</span>
             <span class="special-body">
-              <span class="special-title">間違えた問題に再挑戦</span>
-              <span class="special-sub">${reviewDisabled ? 'まだ間違えた問題はありません' : `復習リスト ${wrongCount} 問`}</span>
+              <span class="special-title">よく間違える問題を集中学習</span>
+              <span class="special-sub">${reviewDisabled ? 'まだ苦手な問題はありません' : `苦手リスト ${weakCount} 問・ミスの多い順に出題`}</span>
             </span>
           </button>
         </div>
@@ -122,7 +122,7 @@
     if (!reviewDisabled) {
       reviewBtn.addEventListener('click', () => {
         vibrate(8);
-        startReviewQuiz();
+        startWeakQuiz();
       });
     }
   }
@@ -208,12 +208,15 @@
     renderQuestion();
   }
 
-  /** 復習リスト（間違えた問題）だけを出題する。 */
-  function startReviewQuiz() {
-    const ids = Storage.getWrongIds();
-    const pool = QUESTIONS.filter((q) => ids.includes(q.id));
+  /** 苦手リスト（よく間違える問題）をミスの多い順に出題する。 */
+  function startWeakQuiz() {
+    const ids = Storage.getWeakIds(); // ミスの多い順
+    const order = new Map(ids.map((id, i) => [id, i]));
+    const pool = QUESTIONS
+      .filter((q) => order.has(q.id))
+      .sort((a, b) => order.get(a.id) - order.get(b.id));
     if (pool.length === 0) return renderHome();
-    session = Quiz.createCustomSession(pool, { mode: 'review', label: '間違えた問題の復習' });
+    session = Quiz.createCustomSession(pool, { mode: 'review', label: 'よく間違える問題', ordered: true });
     renderQuestion();
   }
 
@@ -362,11 +365,11 @@
       const built = placed.map((bi) => q.bank[bi].text);
       const result = Quiz.check(session, built);
 
-      // 復習リストを更新（不正解→追加、正解→除外）
+      // 苦手リストを更新（不正解→ミス記録、正解→連続正解を記録し2回で卒業）
       if (result.correct) {
-        Storage.removeWrong(q.id);
+        Storage.recordCorrect(q.id);
       } else {
-        Storage.addWrong(q.id);
+        Storage.recordWrong(q.id);
       }
 
       renderTiles();
@@ -499,7 +502,7 @@
     document.getElementById('retryBtn').addEventListener('click', () => {
       vibrate(8);
       if (session.mode === 'random') startRandomQuiz();
-      else if (session.mode === 'review') startReviewQuiz();
+      else if (session.mode === 'review') startWeakQuiz();
       else startQuiz(session.unitId);
     });
     document.getElementById('backBtn').addEventListener('click', () => {

@@ -4,7 +4,6 @@
  * ROUND_SIZE 問ずつ「ラウンド」として出題する。UI には依存しない純粋なロジック。
  */
 const Quiz = (() => {
-  const ROUND_SIZE = 10; // 1ラウンドあたりの出題数
   const SEP = '';  // 語順比較用の区切り（通常文に出ない文字）
 
   /** 配列をシャッフルする（Fisher-Yates、非破壊）。 */
@@ -40,7 +39,7 @@ const Quiz = (() => {
 
   /** 現在のラウンドの問題をプールから切り出してセットする。 */
   function loadRound(session) {
-    const slice = session.pool.slice(session.roundStart, session.roundStart + ROUND_SIZE);
+    const slice = session.pool.slice(session.roundStart);
     session.questions = slice.map(prepare);
     session.index = 0;
     session.correctCount = 0;
@@ -68,7 +67,7 @@ const Quiz = (() => {
   /**
    * 任意の問題リストからセッションを生成する（全範囲ランダム・間違い復習で使用）。
    * @param {Object[]} questions 出題する問題の配列
-   * @param {{ mode: string, label: string }} meta モード情報
+   * @param {{ mode: string, label: string, ordered?: boolean }} meta モード情報（ordered: true で渡された順序を保持）
    * @returns {Object} セッション状態
    */
   function createCustomSession(questions, meta) {
@@ -76,7 +75,8 @@ const Quiz = (() => {
       mode: meta.mode,
       unitId: null,
       label: meta.label,
-      pool: shuffle(questions),
+      // ordered 指定時は渡された順（＝ミスの多い順など）を保持、それ以外はシャッフル
+      pool: meta.ordered ? questions.slice() : shuffle(questions),
       roundStart: 0,
       questions: [],
       index: 0,
@@ -92,15 +92,12 @@ const Quiz = (() => {
   }
 
   function startNextRound(session) {
-    session.roundStart += ROUND_SIZE;
+    session.roundStart += session.questions.length;
     loadRound(session);
   }
 
   function roundInfo(session) {
-    return {
-      round: Math.floor(session.roundStart / ROUND_SIZE) + 1,
-      totalRounds: Math.ceil(session.pool.length / ROUND_SIZE),
-    };
+    return { round: 1, totalRounds: 1 };
   }
 
   function current(session) {
