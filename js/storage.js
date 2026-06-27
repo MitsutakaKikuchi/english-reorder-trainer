@@ -113,9 +113,10 @@ const Storage = (() => {
     }
   }
 
-  /** 出題優先度スコア（高いほど先に出題）。未学習は 0、苦手は正、習得済みは負になる。 */
+  /** 出題優先度スコア（高いほど先に出題）。
+   * ミスが多い、正解が少ない、連続正解が少ないほど高くなる。 */
   function scoreOf(stat) {
-    return stat.miss - stat.streak * STREAK_WEIGHT;
+    return stat.miss - stat.streak * STREAK_WEIGHT - stat.correct * 0.1;
   }
 
   /** 苦手（まだ習得していない＝ミスがあり連続正解が GRADUATE_STREAK 未満）か。 */
